@@ -53,7 +53,6 @@ sys_sbrk(void)
   addr = proc->sz;
   if(growproc(n) < 0)
     return -1;
-  cprintf("num of pages in system:%d\n",countPages());
   return addr;
 }
 

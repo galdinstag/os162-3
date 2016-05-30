@@ -494,8 +494,7 @@ wakeup1(void *chan)
       }
       cprintf("\n");
     }
-    //float fra = countPages()/numOfInitializedPages; 
-    //cprintf("%d free pages in the system\n",countPages()*100/numOfInitializedPages);
+    cprintf("%d free pages in the system\n",countPages()*100/numOfInitializedPages);
   }
 
 int

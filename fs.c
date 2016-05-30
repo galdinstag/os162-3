@@ -787,7 +787,7 @@ readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size)
 
 void
 copySwapFile(struct proc *from, struct proc *to){
-   char buf[PGSIZE];
+   char buf[1024];
   //parent have swap file, copy it
     if(from->swapFile){
       int j,k;
@@ -795,12 +795,13 @@ copySwapFile(struct proc *from, struct proc *to){
         if(proc->pagesMetaData[j].fileOffset != -1){
           cprintf("something here %d %d\n",from->pid,from->pagesMetaData[j].fileOffset);
           to->pagesMetaData[j].fileOffset = from->pagesMetaData[j].fileOffset;
-          if(readFromSwapFile(from,buf,from->pagesMetaData[j].fileOffset,PGSIZE) == -1)
-            panic("can't read swap file"); 
-          if(writeToSwapFile(to,buf,to->pagesMetaData[j].fileOffset,PGSIZE) == -1)
-            panic("can't write swap file");
-           for(k = 0; k < PGSIZE; k++)
-             buf[k] = 0;
+          for(k = 0; k < 4; k++){//move only 1024 bytes chunks
+            if(readFromSwapFile(from,buf,from->pagesMetaData[j].fileOffset + 1024*k,1024) == -1)
+              panic("can't read swap file"); 
+            if(writeToSwapFile(to,buf,to->pagesMetaData[j].fileOffset + 1024*k,1024) == -1)
+              panic("can't write swap file");
+           memmove(buf,0,1024);//elapse buf
+         }
         }
       }
     }
