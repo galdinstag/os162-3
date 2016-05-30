@@ -604,6 +604,7 @@ fixPage(uint faultingPage){
 
     if(proc->pagesMetaData[index].isPhysical){//swap him out!
       //cprintf("choose to swap out %x\n",proc->pagesMetaData[index].va);
+      proc->swappedOutCounter++;
       offset = findNextOpenPage(proc->pagesMetaData[index].va);
       //cprintf("after offset\n");
       pte = walkpgdir(proc->pgdir,proc->pagesMetaData[index].va,0);
