@@ -250,8 +250,8 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz, struct proc *proc)
         }
         i++;
       }
-      if ((proc->pid != 1) && (proc->pid != 2)){ //check if not shell or init
-        if(proc->memoryPagesCounter >= MAX_PSYC_PAGES && SCHEDFLAG != 1){//no room, swap something out and let him in
+      if ((!isInit()) && (!isShell()) && SCHEDFLAG != 1){ //check if not shell or init
+        if(proc->memoryPagesCounter >= MAX_PSYC_PAGES){//no room, swap something out and let him in
           swapOut();
           lcr3(v2p(proc->pgdir));
           proc->swapedPagesCounter++;
@@ -291,7 +291,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz, struct proc *proc)
     if(pgdir == proc->pgdir){// if it's the procc itself, clean pages
         for(i = 0; i < PAGES_META_DATA_SIZE; i++){
           if(proc->pagesMetaData[i].va == (char *)a){
-            if(proc->pid != 1 && proc->pid != 2){
+            if((!isShell()) && (!isInit())){
               if(proc->pagesMetaData[i].isPhysical){
                 proc->memoryPagesCounter--;
               }
@@ -595,15 +595,16 @@ fixPage(uint faultingPage){
       break;
 
       case 4:  //NFU
+        minNFU = 0x80;
         for(j=3; j<30; j++){  //find the oldest page by nfu flag
           //cprintf("NFU: %d j=%d\n", minNFU, j);
-          cprintf("checking entry %d minNFU=%d curr=%d %d\n",j, minNFU, proc->pagesMetaData[j].lru, (proc->pagesMetaData[j].lru >= minNFU));
+          //cprintf("checking entry %d minNFU=%d curr=%d %d\n",j, minNFU, proc->pagesMetaData[j].lru, (proc->pagesMetaData[j].lru >= minNFU));
           if (proc->pagesMetaData[j].isPhysical &&  proc->pagesMetaData[j].lru >= minNFU){
             minNFU = proc->pagesMetaData[j].lru;
             index = j;
           }
         }
-        cprintf("choose: %d with virtual add %x\n", index, proc->pagesMetaData[index].va);
+        //cprintf("choose: %d with virtual add %x\n", index, proc->pagesMetaData[index].va);
         break;
       }
 
@@ -620,18 +621,19 @@ fixPage(uint faultingPage){
       }
       //cprintf("after setting PG\n");
       proc->pagesMetaData[index].fileOffset = offset;
-      cprintf("offset of %x: %d\n",proc->pagesMetaData[index].va,proc->pagesMetaData[index].fileOffset);
+      cprintf("choose %x with offset: %d\n",proc->pagesMetaData[index].va,proc->pagesMetaData[index].fileOffset);
 
       proc->pagesMetaData[index].isPhysical = 0;
       proc->pagesMetaData[index].count = proc->numOfPages;
       proc->numOfPages++;
       //memmove(buf,proc->pagesMetaData[index].va,PGSIZE);
       //cprintf("after memmove\n");
-      writeToSwapFile(proc,proc->pagesMetaData[index].va,offset,PGSIZE);
+      writeToSwapFile(proc,p2v(PTE_ADDR(*pte)),offset,PGSIZE);
       //cprintf("after write\n");
       pa = PTE_ADDR(*pte);
-      if(pa == 0)
-      kfree(p2v(pa)); 
+      if(pa != 0){
+        kfree(p2v(pa)); 
+      }
       *pte = 0 | PTE_W | PTE_U | PTE_PG;
     }
   }
@@ -678,4 +680,14 @@ clearAllPages(struct proc *p){
       }
     }
   }
+}
+
+int
+isShell(){
+  return (proc->name[0] == 's') && (proc->name[1] == 'h');
+}
+
+int
+isInit(){
+  return (proc->name[0] == 'i') && (proc->name[1] == 'n') && (proc->name[2] == 'i') && (proc->name[3] == 't');
 }

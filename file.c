@@ -96,7 +96,6 @@ int
 fileread(struct file *f, char *addr, int n)
 {
   int r;
-
   if(f->readable == 0)
     return -1;
   if(f->type == FD_PIPE)
@@ -138,8 +137,9 @@ filewrite(struct file *f, char *addr, int n)
 
       begin_op();
       ilock(f->ip);
-      if ((r = writei(f->ip, addr + i, f->off, n1)) > 0)
+      if ((r = writei(f->ip, addr + i, f->off, n1)) > 0){
         f->off += r;
+      }
       iunlock(f->ip);
       end_op();
 

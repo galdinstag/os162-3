@@ -192,6 +192,7 @@ void            clearpteu(pde_t *pgdir, char *uva);
 int 			existOnDisc(uint faultPage);
 void			clearAllPages(struct proc *p);
 void			updateAge(struct proc*);
-
+int             isShell();
+int             isInit();  
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

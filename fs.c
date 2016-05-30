@@ -781,7 +781,6 @@ int
 readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size)
 {
 	p->swapFile->off = placeOnFile;
-  cprintf("here\n");
 
 	return fileread(p->swapFile, buffer,  size);
 }
