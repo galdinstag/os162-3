@@ -201,12 +201,10 @@ fork(void)
   void
   exit(void)
   {
-    procdump();
     struct proc *p;
     int fd;
-    // #ifdef VERBOSE_PRINT
-    // procdump();
-    // #endif
+    if(VERBOSE_PRINT == 1)
+      procdump();
     if(proc == initproc)
       panic("init exiting");
 
@@ -497,7 +495,7 @@ wakeup1(void *chan)
       cprintf("\n");
     }
     //float fra = countPages()/numOfInitializedPages; 
-    cprintf("%d %d free pages in the system\n",countPages(),numOfInitializedPages);
+    //cprintf("%d free pages in the system\n",countPages()*100/numOfInitializedPages);
   }
 
 int

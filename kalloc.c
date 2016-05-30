@@ -59,9 +59,9 @@ freerange(void *vstart, void *vend)
 void
 kfree(char *v)
 {
-  if(getPid()){
-    cprintf("%x\n",v);
-  }
+  // if(getPid()){
+  //   cprintf("%x\n",v);
+  // }
   struct run *r;
   if((uint)v % PGSIZE || v < end || v2p(v) >= PHYSTOP){
     cprintf("v:%d end:%d uint v:%d ",(uint)v % PGSIZE,v < end,v2p(v) >= PHYSTOP);
@@ -69,10 +69,10 @@ kfree(char *v)
   }
 
   // Fill with junk to catch dangling refs.
-  memset(v, 1, PGSIZE);
-  if(getPid()){
-    cprintf("after memset\n");
-  }
+  //memset(v, 1, PGSIZE);
+  // if(getPid()){
+  //   cprintf("after memset\n");
+  // }
   if(kmem.use_lock)
     acquire(&kmem.lock);
   r = (struct run*)v;

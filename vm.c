@@ -316,12 +316,13 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz, struct proc *proc)
         if(pa == 0)
           panic("kfree");
         char *v = p2v(pa);
+        cprintf("before kfree dealloc\n");
         kfree(v);
+        cprintf("after kfree dealloc\n");
         *pte = 0;
       }
       else{//on swap file, just elapse pte
         *pte = 0;
-        cprintf("dealloc pa:%x",PTE_ADDR(*pte));
       }
     }
     else if(*pte & PTE_PG){//on swap file, just elapse pte
@@ -568,7 +569,6 @@ fixPage(uint faultingPage){
           if(proc->pagesMetaData[j].isPhysical && proc->pagesMetaData[j].count < min){  //found smaller
             min = proc->pagesMetaData[j].count;
             index = j;
-            cprintf("currently i'm choosing %x has count %d\n",proc->pagesMetaData[index],proc->pagesMetaData[index].count);
           }
         }
         break;
@@ -624,13 +624,9 @@ fixPage(uint faultingPage){
       writeToSwapFile(proc,buf,offset,PGSIZE);
       //cprintf("after write\n");
       pa = PTE_ADDR(*pte);
-      cprintf("after pa\n");
       if(pa == 0)
-        panic("kfree swapOut");
-      kfree((char *)p2v(pa)); 
-      cprintf("after kfree\n");
+      kfree(p2v(pa)); 
       *pte = 0 | PTE_W | PTE_U | PTE_PG;
-      cprintf("after pte\n");
     }
   }
 

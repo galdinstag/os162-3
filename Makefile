@@ -87,12 +87,10 @@ CFLAGS += -DSCHEDFLAG=1
 else
 CFLAGS += -DSCHEDFLAG=1
 endif
-ifndef VERBOSE_PRINT
-ifeq (&(VERBOSE_PRINT),TRUE)
-CFLAGS += -DVERBOSE_PRINT=TRUE
+ifeq ($(VERBOSE_PRINT), TRUE)
+CFLAGS += -DVERBOSE_PRINT=1
 else
-CFLAGS += -DVERBOSE_PRINT=FALSE
-endif
+CFLAGS += -DVERBOSE_PRINT=0
 endif
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
