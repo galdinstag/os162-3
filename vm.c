@@ -253,6 +253,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz, struct proc *proc)
       if ((proc->pid != 1) && (proc->pid != 2)){ //check if not shell or init
         if(proc->memoryPagesCounter >= MAX_PSYC_PAGES && SCHEDFLAG != 1){//no room, swap something out and let him in
           swapOut();
+          lcr3(v2p(proc->pgdir));
           proc->swapedPagesCounter++;
         }
         else{
@@ -486,10 +487,10 @@ findNextOpenPage(char *a){
       }
     }
     if(found){// place the page in offset i
-      break;
+      return i;
     }
   }
-  return i;
+  return -1;
 }
 
 int
@@ -528,10 +529,12 @@ fixPage(uint faultingPage){
         cprintf("found %d\n",proc->pagesMetaData[i].fileOffset);
         if(readFromSwapFile(proc,mem,proc->pagesMetaData[i].fileOffset,PGSIZE) == -1)
           panic("nothing read");
-        if(proc->memoryPagesCounter >= 15 && SCHEDFLAG != 1)  //need to swap out
+        if(proc->memoryPagesCounter >= 15 && SCHEDFLAG != 1){  //need to swap out
           swapOut();
+          lcr3(v2p(proc->pgdir));
+        }
         proc->pagesMetaData[i].isPhysical = 1;
-        proc->pagesMetaData[i].lru = 0x80;  //TODO here?
+        proc->pagesMetaData[i].lru = 0x80;  
         proc->pagesMetaData[i].fileOffset = -1;
         break;
       }
@@ -583,7 +586,7 @@ fixPage(uint faultingPage){
         if (*pte & PTE_A){  //the access flag is on. turn off and give a new counter
             *pte &= !PTE_A; //turn off
             proc->pagesMetaData[index].count = proc->numOfPages;  
-            proc->numOfPages++; //TODO: SEMAPHOR!???
+            proc->numOfPages++; 
           }
         else{//it is a good one
           break;
@@ -593,11 +596,14 @@ fixPage(uint faultingPage){
 
       case 4:  //NFU
         for(j=3; j<30; j++){  //find the oldest page by nfu flag
-          if (proc->pagesMetaData[j].isPhysical &&  proc->pagesMetaData[j].lru <= minNFU){
+          //cprintf("NFU: %d j=%d\n", minNFU, j);
+          cprintf("checking entry %d minNFU=%d curr=%d %d\n",j, minNFU, proc->pagesMetaData[j].lru, (proc->pagesMetaData[j].lru >= minNFU));
+          if (proc->pagesMetaData[j].isPhysical &&  proc->pagesMetaData[j].lru >= minNFU){
             minNFU = proc->pagesMetaData[j].lru;
             index = j;
           }
         }
+        cprintf("choose: %d with virtual add %x\n", index, proc->pagesMetaData[index].va);
         break;
       }
 
@@ -606,7 +612,7 @@ fixPage(uint faultingPage){
       //cprintf("choose to swap out %x\n",proc->pagesMetaData[index].va);
       proc->swappedOutCounter++;
       offset = findNextOpenPage(proc->pagesMetaData[index].va);
-      //cprintf("after offset\n");
+
       pte = walkpgdir(proc->pgdir,proc->pagesMetaData[index].va,0);
       //cprintf("after walkpgdir\n");
       if(!(*pte & PTE_PG)){
@@ -614,6 +620,8 @@ fixPage(uint faultingPage){
       }
       //cprintf("after setting PG\n");
       proc->pagesMetaData[index].fileOffset = offset;
+      cprintf("offset of %x: %d\n",proc->pagesMetaData[index].va,proc->pagesMetaData[index].fileOffset);
+
       proc->pagesMetaData[index].isPhysical = 0;
       proc->pagesMetaData[index].count = proc->numOfPages;
       proc->numOfPages++;
