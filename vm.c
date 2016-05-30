@@ -251,7 +251,7 @@ allocuvm(pde_t *pgdir, uint oldsz, uint newsz, struct proc *proc)
         i++;
       }
       if ((proc->pid != 1) && (proc->pid != 2)){ //check if not shell or init
-        if(proc->memoryPagesCounter >= MAX_PSYC_PAGES){//no room, swap something out and let him in
+        if(proc->memoryPagesCounter >= MAX_PSYC_PAGES && SCHEDFLAG != 1){//no room, swap something out and let him in
           swapOut();
           proc->swapedPagesCounter++;
         }
@@ -530,7 +530,7 @@ fixPage(uint faultingPage){
         cprintf("found %d\n",proc->pagesMetaData[i].fileOffset);
         if(readFromSwapFile(proc,buf,proc->pagesMetaData[i].fileOffset,PGSIZE) == -1)
           panic("nothing read");
-        if(proc->memoryPagesCounter >= 15)  //need to swap out
+        if(proc->memoryPagesCounter >= 15 && SCHEDFLAG != 1)  //need to swap out
           swapOut();
         proc->pagesMetaData[i].isPhysical = 1;
         proc->pagesMetaData[i].lru = 0x80;  //TODO here?
@@ -561,7 +561,7 @@ fixPage(uint faultingPage){
       case 1: //NONE
       //TODO!!!:in places of move out dont do it and dont use the array at all.
 
-      break;
+      return;
 
       case 2: //FIFO
         for(j=3; j<30; j++){  //find the oldest page
@@ -606,23 +606,23 @@ fixPage(uint faultingPage){
 
 
     if(proc->pagesMetaData[index].isPhysical){//swap him out!
-      cprintf("choose to swap out %x\n",proc->pagesMetaData[index].va);
+      //cprintf("choose to swap out %x\n",proc->pagesMetaData[index].va);
       offset = findNextOpenPage(proc->pagesMetaData[index].va);
-      cprintf("after offset\n");
+      //cprintf("after offset\n");
       pte = walkpgdir(proc->pgdir,proc->pagesMetaData[index].va,0);
-      cprintf("after walkpgdir\n");
+      //cprintf("after walkpgdir\n");
       if(!(*pte & PTE_PG)){
         *pte |= PTE_PG; //turn on    
       }
-      cprintf("after setting PG\n");
+      //cprintf("after setting PG\n");
       proc->pagesMetaData[index].fileOffset = offset;
       proc->pagesMetaData[index].isPhysical = 0;
       proc->pagesMetaData[index].count = proc->numOfPages;
       proc->numOfPages++;
       memmove(buf,proc->pagesMetaData[index].va,PGSIZE);
-      cprintf("after memmove\n");
+      //cprintf("after memmove\n");
       writeToSwapFile(proc,buf,offset,PGSIZE);
-      cprintf("after write\n");
+      //cprintf("after write\n");
       pa = PTE_ADDR(*pte);
       cprintf("after pa\n");
       if(pa == 0)

@@ -16,6 +16,7 @@ static struct proc *initproc;
 
 int numOfInitializedPages;
 int nextpid = 1;
+int afterInit = 0;
 extern void forkret(void);
 extern void trapret(void);
 
@@ -120,6 +121,7 @@ allocproc(void)
   p->state = RUNNABLE;
   numOfInitializedPages = countPages();
   cprintf("num of initialized pages: %d\n",numOfInitializedPages);
+  afterInit = 1;
 }
 
 // Grow current process's memory by n bytes.
@@ -497,3 +499,8 @@ wakeup1(void *chan)
     //float fra = countPages()/numOfInitializedPages; 
     cprintf("%d %d free pages in the system\n",countPages(),numOfInitializedPages);
   }
+
+int
+getPid(){
+  return afterInit;
+}
