@@ -92,6 +92,7 @@ allocproc(void)
     p->pageFaultCounter = 0;
     p->swappedOutCounter = 0;
     p->numOfPages = 0;
+    p->copyingSwapFile = 0;
     int i;
   //initialize pagesMetaData
     for(i = 0; i < PAGES_META_DATA_SIZE; i++){
@@ -182,8 +183,11 @@ fork(void)
 
   //NEW
   //copy pagesMetaData
+    np->memoryPagesCounter = proc->memoryPagesCounter;
+    np->swapedPagesCounter = proc->swapedPagesCounter;
     np->pageFaultCounter = 0;
     np->swappedOutCounter = 0;
+    np->copyingSwapFile = 0;
     createSwapFile(np);
     copySwapFile(proc,np);
   //END NEW
@@ -497,7 +501,7 @@ wakeup1(void *chan)
     cprintf("%d free pages in the system\n",countPages()*100/numOfInitializedPages);
   }
 
-int
-getPid(){
-  return afterInit;
+void
+copyingSwapFile(struct proc* p, int num){
+  while(xchg(&(p->copyingSwapFile),num) != 0);
 }

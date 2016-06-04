@@ -118,8 +118,10 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   if(proc && proc->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER){
     //update age of pages.TODO:check it is the right place.
-    if (SCHEDFLAG==4) updateAge(proc); //TODO: maybe need to get proc?
     yield();
+     if (SCHEDFLAG==4){
+      updateAge(proc);
+    } 
   }
 
   // Check if the process has been killed since we yielded

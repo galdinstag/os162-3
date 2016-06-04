@@ -109,7 +109,7 @@ int             pipewrite(struct pipe*, char*, int);
 
 //PAGEBREAK: 16
 // proc.c
-int 			getPid();
+void            copyingSwapFile(struct proc *,int);
 struct proc*    copyproc(struct proc*);
 void            exit(void);
 int             fork(void);
@@ -190,7 +190,6 @@ void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 int 			existOnDisc(uint faultPage);
-void			clearAllPages(struct proc *p);
 void			updateAge(struct proc*);
 int             isShell();
 int             isInit();  

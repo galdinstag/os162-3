@@ -8,7 +8,6 @@
 // This file contains the low-level file system manipulation 
 // routines.  The (higher-level) system call implementations
 // are in sysfile.c.
-
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -787,22 +786,39 @@ readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size)
 
 void
 copySwapFile(struct proc *from, struct proc *to){
-   char buf[1024];
+   //cprintf("start copying\n");
+   // copyingSwapFile(to,1);
+   // copyingSwapFile(from,1);
+   // cprintf("copy: %d\n",to->copyingSwapFile);
+   char *mem = kalloc();
+   memmove(mem,0,PGSIZE);//elapse buf
+   int i,j;//k,t;
   //parent have swap file, copy it
-    if(from->swapFile){
-      int j,k;
-      for(j = 0; j < 30; j++){
-        if(proc->pagesMetaData[j].fileOffset != -1){
-          cprintf("something here %d %d\n",from->pid,from->pagesMetaData[j].fileOffset);
-          to->pagesMetaData[j].fileOffset = from->pagesMetaData[j].fileOffset;
-          for(k = 0; k < 4; k++){//move only 1024 bytes chunks
-            if(readFromSwapFile(from,buf,from->pagesMetaData[j].fileOffset + 1024*k,1024) == -1)
-              panic("can't read swap file"); 
-            if(writeToSwapFile(to,buf,to->pagesMetaData[j].fileOffset + 1024*k,1024) == -1)
-              panic("can't write swap file");
-           memmove(buf,0,1024);//elapse buf
-         }
+   if(from->swapFile){
+    for(j = 0; j < 30; j++){
+        if(from->pagesMetaData[j].fileOffset != -1){//the from[j] is in the swap file
+          //find his match in to[] and copy the page
+          for(i = 0; i < 30; i++){
+            if(to->pagesMetaData[i].va == from->pagesMetaData[j].va){//thats the one!
+              to->pagesMetaData[i].fileOffset = from->pagesMetaData[j].fileOffset;
+              // for(k = 0; k < 4; k++){//move only 1024 bytes chunks
+              // t = k*1024;
+              if(readFromSwapFile(from,mem,from->pagesMetaData[j].fileOffset,PGSIZE) == -1){
+                panic("can't read from swap file"); 
+              }
+              if(writeToSwapFile(to,mem,to->pagesMetaData[i].fileOffset,PGSIZE) == -1){
+                cprintf("fail again\n");
+                //cprintf("problem at %d from va:%x to va:%x from offset:%d to offset:%d k:%d t:%d copying: %d\n",j,from->pagesMetaData[i].va,to->pagesMetaData[i].va,from->pagesMetaData[i].fileOffset,to->pagesMetaData[i].fileOffset,k,t, proc->copyingSwapFile);
+                //panic("can't write to swap file");
+              }
+              memmove(mem,0,PGSIZE);//elapse buf
+              // }
+            }
+          }
         }
       }
     }
+    // copyingSwapFile(to,0);
+    // copyingSwapFile(from,0);
+    kfree(mem);
 }

@@ -388,27 +388,29 @@ copyuvm(pde_t *pgdir, uint sz, struct proc* np)
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)
       panic("copyuvm: pte should exist");
-    if(!(*pte & PTE_P))
-      panic("copyuvm: page not present");
-    pa = PTE_ADDR(*pte);
-    flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto bad;
-    memmove(mem, (char*)p2v(pa), PGSIZE);
-    if(mappages(d, (void*)i, PGSIZE, v2p(mem), flags) < 0)
-      goto bad;
-    // if(*pte & PTE_PG)
-    //   *pte &= ~PTE_PG;
+    if(*pte & PTE_P){// page on RAM, copy it to the new process ram
+      // panic("copyuvm: page not present");
+      pa = PTE_ADDR(*pte);
+      flags = PTE_FLAGS(*pte);
+      if((mem = kalloc()) == 0)
+        goto bad;
+      memmove(mem, (char*)p2v(pa), PGSIZE);
+      if(mappages(d, (void*)i, PGSIZE, v2p(mem), flags) < 0)
+        goto bad;
+      np->pagesMetaData[j].isPhysical = 1;
+    }
+    else{//page is in swap file, need to create pte for it
+      pte = walkpgdir(d,(void*)i,1);
+      *pte &= ~PTE_P;
+      *pte |= PTE_PG;
+      np->pagesMetaData[j].isPhysical = 0;
+    }
     np->pagesMetaData[j].va = (char *) i;
-    np->pagesMetaData[j].isPhysical = 1;
     np->pagesMetaData[j].fileOffset = -1;
     np->pagesMetaData[j].count = proc->pagesMetaData[j].count;
     np->pagesMetaData[j].lru = proc->pagesMetaData[j].lru;
     np->memoryPagesCounter++;
     j++;
-  // for(k = 0; k < 30; k++){
-  //     cprintf("i=%d va %x\n",k,np->pagesMetaData[k].va);
-  // }
   }
   for(; j < 30; j++){
     np->pagesMetaData[j].va = (char *) -1;
@@ -487,19 +489,19 @@ findNextOpenPage(char *a){
       }
     }
     if(found){// place the page in offset i
-      return i;
+      break;
     }
   }
-  return -1;
+  return i;
 }
 
 int
 existOnDisc(uint faultingPage){
-  cprintf("faulting page: %x\n",faultingPage);
   pte_t *pte;
   pte = walkpgdir(proc->pgdir,(char *) faultingPage,0);
   int found = 0;
   int i;
+  cprintf("faulting page: %x\n",faultingPage);
   for(i = 0; i < 30; i++){
     if(proc->pagesMetaData[i].va != (char *) -1){
       if((PGROUNDDOWN((uint)proc->pagesMetaData[i].va) <= faultingPage) && (PGROUNDUP((uint)proc->pagesMetaData[i].va) >= faultingPage) && (*pte & PTE_PG))
@@ -553,6 +555,7 @@ fixPage(uint faultingPage){
     //char buf[PGSIZE];
     pte_t *pte;
     uint pa;
+    uint flags;
     int index = -1;
     int min = proc->numOfPages+3;
     char minNFU = 0x80;
@@ -584,7 +587,7 @@ fixPage(uint faultingPage){
         }
         pte = walkpgdir(proc->pgdir,proc->pagesMetaData[index].va,0);
         if (*pte & PTE_A){  //the access flag is on. turn off and give a new counter
-            *pte &= !PTE_A; //turn off
+            *pte &= ~PTE_A; //turn off
             proc->pagesMetaData[index].count = proc->numOfPages;  
             proc->numOfPages++; 
           }
@@ -604,37 +607,27 @@ fixPage(uint faultingPage){
             index = j;
           }
         }
-        //cprintf("choose: %d with virtual add %x\n", index, proc->pagesMetaData[index].va);
         break;
       }
 
 
     if(proc->pagesMetaData[index].isPhysical){//swap him out!
-      //cprintf("choose to swap out %x\n",proc->pagesMetaData[index].va);
       proc->swappedOutCounter++;
       offset = findNextOpenPage(proc->pagesMetaData[index].va);
-
+      cprintf("swapping out %x to offset %d\n",proc->pagesMetaData[index].va,offset);
       pte = walkpgdir(proc->pgdir,proc->pagesMetaData[index].va,0);
-      //cprintf("after walkpgdir\n");
-      if(!(*pte & PTE_PG)){
-        *pte |= PTE_PG; //turn on    
-      }
-      //cprintf("after setting PG\n");
       proc->pagesMetaData[index].fileOffset = offset;
-      cprintf("choose %x with offset: %d\n",proc->pagesMetaData[index].va,proc->pagesMetaData[index].fileOffset);
-
       proc->pagesMetaData[index].isPhysical = 0;
       proc->pagesMetaData[index].count = proc->numOfPages;
       proc->numOfPages++;
-      //memmove(buf,proc->pagesMetaData[index].va,PGSIZE);
-      //cprintf("after memmove\n");
       writeToSwapFile(proc,p2v(PTE_ADDR(*pte)),offset,PGSIZE);
-      //cprintf("after write\n");
       pa = PTE_ADDR(*pte);
+      flags = PTE_FLAGS(*pte);
       if(pa != 0){
         kfree(p2v(pa)); 
       }
-      *pte = 0 | PTE_W | PTE_U | PTE_PG;
+      *pte = 0 | flags | PTE_PG;
+      *pte &= ~PTE_P;
     }
   }
 
@@ -644,43 +637,15 @@ fixPage(uint faultingPage){
     pte_t* pte;
 
     int i;
-    for (i=3; i<30; i++)
-      if(proc->pagesMetaData[i].isPhysical && proc->pagesMetaData[i].va!=0){ //only if on RAM
+    for (i=0; i<30; i++)
+      if(proc->pagesMetaData[i].isPhysical && proc->pagesMetaData[i].va!=(char *) -1){ //only if on RAM
         proc->pagesMetaData[i].lru = proc->pagesMetaData[i].lru>>1;   //move a bit to the right
         pte = walkpgdir(proc->pgdir,proc->pagesMetaData[i].va,0);
-        if(!(*pte & PTE_A)){
-          *pte &= !PTE_A; //turn off bit 
-      }
+         if(*pte & PTE_A){
+           *pte &= ~PTE_A; //turn off bit 
+       }
     }
   }
-
-void
-clearAllPages(struct proc *p){
-  int i;
-  pte_t *pte;
-  uint pa;
-  for(i = 0; i < MAX_TOTAL_PAGES; i++){
-    if(p->pagesMetaData[i].va != (char *) -1){
-      pte = walkpgdir(p->pgdir,proc->pagesMetaData[i].va,0);
-      if(!pte){
-
-      }
-      else if((*pte & PTE_P) != 0){
-        pa = PTE_ADDR(*pte);
-        if(pa == 0){
-          cprintf("already free\n");
-        }
-        else{
-          cprintf("clearing\n");
-          char *v = p2v(pa);
-          kfree(v);
-          *pte = 0;
-          cprintf("finished\n");
-        }
-      }
-    }
-  }
-}
 
 int
 isShell(){

@@ -36,11 +36,15 @@ exec(char *path, char **argv)
 
   // Load program into memory.
   sz = 0;
+  proc->numOfPages = 0;
+  proc->copyingSwapFile = 0;
   int j;
   for(j = 0; j < 30; j++){
     proc->pagesMetaData[j].va = (char *) -1;
     proc->pagesMetaData[j].isPhysical = 0;
     proc->pagesMetaData[j].fileOffset = -1;
+    proc->pagesMetaData[j].count = 0;
+    proc->pagesMetaData[j].lru = 0x80;
   }
   proc->memoryPagesCounter = 0;
   proc->swapedPagesCounter = 0;
@@ -98,7 +102,7 @@ exec(char *path, char **argv)
   proc->pgdir = pgdir;
   proc->sz = sz;
   //change proc->pagesMetaData according to the new exec
-  if(proc->pid != 1){
+  if(!isInit()){
     removeSwapFile(proc);
     createSwapFile(proc);
   //END NEW

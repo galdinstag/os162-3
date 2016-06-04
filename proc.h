@@ -83,7 +83,7 @@ struct proc {
   int  swappedOutCounter;
   struct pageMetaData pagesMetaData[30];
   int numOfPages; //a counter of pages in memo to update pagesMetaData.counter
-
+  volatile uint copyingSwapFile;
 
 };
 
