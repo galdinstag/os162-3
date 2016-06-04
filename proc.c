@@ -189,7 +189,8 @@ fork(void)
     np->swappedOutCounter = 0;
     np->copyingSwapFile = 0;
     createSwapFile(np);
-    copySwapFile(proc,np);
+    if(proc->swapFile)
+      copySwapFile(proc,np);
   //END NEW
   // lock to force the compiler to emit the np->state write last.
     acquire(&ptable.lock);
@@ -500,8 +501,3 @@ wakeup1(void *chan)
     }
     cprintf("%d free pages in the system\n",countPages()*100/numOfInitializedPages);
   }
-
-void
-copyingSwapFile(struct proc* p, int num){
-  while(xchg(&(p->copyingSwapFile),num) != 0);
-}

@@ -786,39 +786,20 @@ readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size)
 
 void
 copySwapFile(struct proc *from, struct proc *to){
-   //cprintf("start copying\n");
-   // copyingSwapFile(to,1);
-   // copyingSwapFile(from,1);
-   // cprintf("copy: %d\n",to->copyingSwapFile);
-   char *mem = kalloc();
-   memmove(mem,0,PGSIZE);//elapse buf
-   int i,j;//k,t;
-  //parent have swap file, copy it
-   if(from->swapFile){
-    for(j = 0; j < 30; j++){
+  char buf[1024];
+  int i,j;
+  for(i = 0; i < 14*PGSIZE; i+= 1024){
+    readFromSwapFile(from,buf,i,1024);
+    writeToSwapFile(to,buf,i,1024);
+  }
+  for(j = 0; j < 30; j++){
         if(from->pagesMetaData[j].fileOffset != -1){//the from[j] is in the swap file
           //find his match in to[] and copy the page
           for(i = 0; i < 30; i++){
             if(to->pagesMetaData[i].va == from->pagesMetaData[j].va){//thats the one!
               to->pagesMetaData[i].fileOffset = from->pagesMetaData[j].fileOffset;
-              // for(k = 0; k < 4; k++){//move only 1024 bytes chunks
-              // t = k*1024;
-              if(readFromSwapFile(from,mem,from->pagesMetaData[j].fileOffset,PGSIZE) == -1){
-                panic("can't read from swap file"); 
-              }
-              if(writeToSwapFile(to,mem,to->pagesMetaData[i].fileOffset,PGSIZE) == -1){
-                cprintf("fail again\n");
-                //cprintf("problem at %d from va:%x to va:%x from offset:%d to offset:%d k:%d t:%d copying: %d\n",j,from->pagesMetaData[i].va,to->pagesMetaData[i].va,from->pagesMetaData[i].fileOffset,to->pagesMetaData[i].fileOffset,k,t, proc->copyingSwapFile);
-                //panic("can't write to swap file");
-              }
-              memmove(mem,0,PGSIZE);//elapse buf
-              // }
             }
           }
         }
       }
-    }
-    // copyingSwapFile(to,0);
-    // copyingSwapFile(from,0);
-    kfree(mem);
 }
