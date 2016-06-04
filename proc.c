@@ -92,7 +92,6 @@ allocproc(void)
     p->pageFaultCounter = 0;
     p->swappedOutCounter = 0;
     p->numOfPages = 0;
-    p->copyingSwapFile = 0;
     int i;
   //initialize pagesMetaData
     for(i = 0; i < PAGES_META_DATA_SIZE; i++){
@@ -187,7 +186,6 @@ fork(void)
     np->swapedPagesCounter = proc->swapedPagesCounter;
     np->pageFaultCounter = 0;
     np->swappedOutCounter = 0;
-    np->copyingSwapFile = 0;
     createSwapFile(np);
     if(proc->swapFile)
       copySwapFile(proc,np);

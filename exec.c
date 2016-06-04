@@ -37,7 +37,6 @@ exec(char *path, char **argv)
   // Load program into memory.
   sz = 0;
   proc->numOfPages = 0;
-  proc->copyingSwapFile = 0;
   int j;
   for(j = 0; j < 30; j++){
     proc->pagesMetaData[j].va = (char *) -1;

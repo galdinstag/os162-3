@@ -786,11 +786,11 @@ readFromSwapFile(struct proc * p, char* buffer, uint placeOnFile, uint size)
 
 void
 copySwapFile(struct proc *from, struct proc *to){
-  char buf[1024];
+  char buf[2048];
   int i,j;
-  for(i = 0; i < 14*PGSIZE; i+= 1024){
-    readFromSwapFile(from,buf,i,1024);
-    writeToSwapFile(to,buf,i,1024);
+  for(i = 0; i < 14*PGSIZE; i+= 2048){
+    readFromSwapFile(from,buf,i,2048);
+    writeToSwapFile(to,buf,i,2048);
   }
   for(j = 0; j < 30; j++){
         if(from->pagesMetaData[j].fileOffset != -1){//the from[j] is in the swap file

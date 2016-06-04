@@ -27,6 +27,9 @@ main(int argc, char *argv[])
 	}
 	printf(1,"forking\n");
 	pid = fork();
+	printf(1,"forking son\n");
+	if(pid == 0)
+		pid = fork();
 //using all pages to cause page faults
 	printf(1,"pid %d starting writing to all pages\n",pid);
 	for(k = 0; k < 3; k++){
@@ -41,7 +44,6 @@ main(int argc, char *argv[])
 	if(pid != 0){//mother
 		wait();
 	}
-
 	printf(1,"Finished Successfuly!!!\n");
 	exit();
 	return 0;
